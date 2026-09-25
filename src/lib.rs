@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use std::fs;
 use std::path::Path;
 
@@ -34,8 +35,6 @@ struct ArgDef {
     action: Option<String>,
     default_value: Option<String>,
     conflicts_with: Option<String>,
-
-    // ✅ 唯一新增字段
     value_parser: Option<String>,
 }
 
@@ -50,7 +49,7 @@ fn map_action(s: &str) -> &'static str {
     }
 }
 
-/// `解析num_args范围字符串，转为rust合法代码`
+/// 解析 `num_args` 范围字符串，转为rust合法代码
 fn parse_num_args(s: &str) -> String {
     match s {
         "0.." => "0..".to_string(),
@@ -71,11 +70,11 @@ fn escape_str(s: &str) -> String {
 fn build_command(c: &CommandDef) -> String {
     let mut code = String::new();
     let about = escape_str(&c.about);
-    code.push_str(&format!("Command::new(\"{}\").about(\"{}\")", escape_str(&c.name), about));
+    write!(code, "Command::new(\"{}\").about(\"{}\")", escape_str(&c.name), about).unwrap();
 
     if let Some(aliases) = &c.aliases {
         for alias in aliases {
-            code.push_str(&format!(".alias(\"{}\")", escape_str(alias)));
+            write!(code, ".alias(\"{}\")", escape_str(alias)).unwrap();
         }
     }
 
@@ -89,9 +88,9 @@ fn build_command(c: &CommandDef) -> String {
         let mut group =
             format!("clap::ArgGroup::new(\"{}_exclusive\").multiple(false)", escape_str(&c.name));
         for arg in args {
-            group.push_str(&format!(".arg(\"{}\")", escape_str(&arg.name)));
+            write!(group, ".arg(\"{}\")", escape_str(&arg.name)).unwrap();
         }
-        code.push_str(&format!(".group({group})"));
+        write!(code, ".group({group})").unwrap();
     }
 
     if let Some(args) = &c.args {
@@ -99,40 +98,40 @@ fn build_command(c: &CommandDef) -> String {
             let mut arg = format!("Arg::new(\"{}\")", escape_str(&a.name));
 
             if let Some(c) = a.short {
-                arg.push_str(&format!(".short('{c}')"));
+                write!(arg, ".short('{c}')").unwrap();
             }
             if let Some(l) = &a.long {
-                arg.push_str(&format!(".long(\"{}\")", escape_str(l)));
+                write!(arg, ".long(\"{}\")", escape_str(l)).unwrap();
             }
             if let Some(h) = &a.help {
-                arg.push_str(&format!(".help(\"{}\")", escape_str(h)));
+                write!(arg, ".help(\"{}\")", escape_str(h)).unwrap();
             }
             if let Some(vn) = &a.value_name {
-                arg.push_str(&format!(".value_name(\"{}\")", escape_str(vn)));
+                write!(arg, ".value_name(\"{}\")", escape_str(vn)).unwrap();
             }
             if a.required == Some(true) {
                 arg.push_str(".required(true)");
             }
             if let Some(n) = &a.num_args {
                 let range = parse_num_args(n);
-                arg.push_str(&format!(".num_args({range})"));
+                write!(arg, ".num_args({range})").unwrap();
             }
             if let Some(act) = &a.action {
-                arg.push_str(&format!(".action({})", map_action(act)));
+                write!(arg, ".action({})", map_action(act)).unwrap();
             }
             if let Some(dv) = &a.default_value {
-                arg.push_str(&format!(".default_value(\"{}\")", escape_str(dv)));
+                write!(arg, ".default_value(\"{}\")", escape_str(dv)).unwrap();
             }
 
             if let Some(vp) = &a.value_parser {
-                arg.push_str(&format!(".value_parser(clap::value_parser!({vp}))"));
+                write!(arg, ".value_parser(clap::value_parser!({vp}))").unwrap();
             }
 
             if let Some(cf) = &a.conflicts_with {
-                arg.push_str(&format!(".conflicts_with(\"{}\")", escape_str(cf)));
+                write!(arg, ".conflicts_with(\"{}\")", escape_str(cf)).unwrap();
             }
 
-            code.push_str(&format!(".arg({arg})"));
+            write!(code, ".arg({arg})").unwrap();
         }
     }
 
@@ -140,15 +139,20 @@ fn build_command(c: &CommandDef) -> String {
         subcommands.sort_by(|a, b| a.name.cmp(&b.name));
         for sub in subcommands {
             let sub_code = build_command(&sub);
-            code.push_str(&format!(".subcommand({sub_code})"));
+            write!(code, ".subcommand({sub_code})").unwrap();
         }
     }
 
     code
 }
 
-pub fn build_with_yaml(yaml: String) {
-    let out_dir = std::env::var("OUT_DIR").unwrap();
+/// 从 YAML 生成 clap 命令代码
+///
+/// # Panics
+///
+/// 如果 `OUT_DIR` 环境变量未设置，或 YAML 解析失败，或文件写入失败。
+pub fn build_with_yaml(yaml: &str) {
+    let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR environment variable not set");
     let dest = Path::new(&out_dir).join("command.rs");
     if let Some(parent) = dest.parent() {
         fs::create_dir_all(parent).expect("Failed create command dir");
@@ -157,7 +161,7 @@ pub fn build_with_yaml(yaml: String) {
     // let yaml_path = Path::new("./commands.yaml");
     // let yaml = fs::read_to_string(yaml_path).expect("Cannot read ./commands.yaml, file missing");
     let config: Config =
-        serde_yaml::from_str(&yaml).expect("commands.yaml yaml parse failed, check syntax");
+        serde_yaml::from_str(yaml).expect("commands.yaml yaml parse failed, check syntax");
 
     let mut commands = config.commands;
 
@@ -172,7 +176,7 @@ pub fn build_with_yaml(yaml: String) {
 
     for c in commands {
         let cmd_code = build_command(&c);
-        code.push_str(&format!("    cmd = cmd.subcommand({cmd_code});\n"));
+        writeln!(code, "    cmd = cmd.subcommand({cmd_code});").unwrap();
     }
 
     code.push_str("    cmd\n");

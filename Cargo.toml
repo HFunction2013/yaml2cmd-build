@@ -1,19 +1,39 @@
 [package]
 name = "yaml2cmd-build"
-edition.workspace = true
-license.workspace = true
-rust-version.workspace = true
-version.workspace = true
-repository.workspace = true
-authors.workspace = true
+edition = "2024"
+license = "MIT"
+rust-version = "1.85"
+version = "0.1.0"
+description = "Build-time code generator for clap commands from YAML"
+authors = ["HFunction2013 <HFunction2013@outlook.com>"]
+repository = "https://github.com/HFunction2013/yaml2cmd"
+keywords = ["clap", "yaml", "cli", "codegen", "build"]
+categories = ["command-line-interface", "development-tools"]
+documentation = "https://docs.rs/yaml2cmd-build"
+homepage = "https://github.com/HFunction2013/yaml2cmd"
+exclude = [".gitignore"]
 
 [lib]
 name = "yaml2cmd_build"
 path = "src/lib.rs"
 
 [dependencies]
-serde = { workspace = true }
-serde_yaml = { workspace = true }
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
 
-[lints]
-workspace = true
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = 3
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
