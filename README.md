@@ -1,8 +1,8 @@
 # `yaml2cmd-build`
 
-https://img.shields.io/crates/v/yaml2cmd-build.svg](https://crates.io/crates/yaml2cmd-build)
-https://docs.rs/yaml2cmd-build/badge.svg](https://docs.rs/yaml2cmd-build)
-https://img.shields.io/badge/license-MIT-blue.svg](LICENSE)
+[![crates.io](https://img.shields.io/crates/v/yaml2cmd-build.svg)](https://crates.io/crates/yaml2cmd-build)
+[![docs.rs](https://docs.rs/yaml2cmd-build/badge.svg)](https://docs.rs/yaml2cmd-build)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A build-time code generator that transforms YAML CLI definitions into Rust source code for `clap::Command`. Unlike runtime parsing, this approach generates compile-time checked code with zero runtime overhead.
 
